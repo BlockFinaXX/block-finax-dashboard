@@ -5,8 +5,8 @@ import { headers } from "next/headers";
 import Sidebar from "../components/layout/SideBar";
 import Header from "../components/layout/Header";
 import { Inter } from "next/font/google";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { WagmiProvider } from "@/components/providers/WagmiProvider";
-import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +19,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SessionProvider>
+        <AuthProvider>
           <WagmiProvider>
             <Sidebar />
             <div className="ml-64 flex flex-col w-full min-h-screen">
@@ -27,7 +27,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
               <main className="mt-16 flex-1 bg-gray-50 p-6">{children}</main>
             </div>
           </WagmiProvider>
-        </SessionProvider>
+        </AuthProvider>
       </body>
     </html>
   );
