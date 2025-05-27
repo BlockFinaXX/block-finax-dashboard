@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, User, Mail, Lock, Building } from "lucide-react";
-import { register } from "@/utils/auth";
+import { UserPlus, Mail, Lock, Wallet } from "lucide-react";
+import { register, checkMetaMaskConnection } from "@/utils/auth";
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -16,25 +16,60 @@ interface RegisterFormProps {
 
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
-    companyName: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isMetaMaskConnected, setIsMetaMaskConnected] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
+  const handleConnectMetaMask = async () => {
+    try {
+      await checkMetaMaskConnection();
+      setIsMetaMaskConnected(true);
+      toast({
+        title: "Success",
+        description: "MetaMask connected successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to connect MetaMask",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isMetaMaskConnected) {
+      toast({
+        title: "Error",
+        description: "Please connect your MetaMask wallet first",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await register(formData);
-      toast({
-        title: "Success",
-        description: "Registration successful! Please login.",
-      });
+      const result = await register(formData);
+
+      if (result.user?.walletAddress) {
+        toast({
+          title: "Success",
+          description: "Account and wallet created successfully!",
+        });
+      } else {
+        toast({
+          title: "Partial Success",
+          description:
+            "Account created, but wallet creation failed. You can create a wallet later.",
+        });
+      }
+
       onSuccess?.();
       router.refresh();
     } catch (error) {
@@ -59,24 +94,6 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name" className="text-sm font-medium">
-            Full Name
-          </Label>
-          <div className="relative">
-            <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              value={formData.name}
-              onChange={handleChange}
-              className="pl-10"
-              placeholder="Enter your full name"
-              required
-            />
-          </div>
-        </div>
         <div className="space-y-2">
           <Label htmlFor="email" className="text-sm font-medium">
             Email
@@ -113,32 +130,26 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="companyName" className="text-sm font-medium">
-            Company Name
-          </Label>
-          <div className="relative">
-            <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            <Input
-              id="companyName"
-              name="companyName"
-              type="text"
-              value={formData.companyName}
-              onChange={handleChange}
-              className="pl-10"
-              placeholder="Enter your company name"
-              required
-            />
-          </div>
-        </div>
       </div>
+
+      {!isMetaMaskConnected && (
+        <Button
+          type="button"
+          onClick={handleConnectMetaMask}
+          className="w-full bg-[#195175] hover:bg-[#195175]/90"
+        >
+          <Wallet className="mr-2 h-4 w-4" />
+          Connect MetaMask
+        </Button>
+      )}
+
       <Button
         type="submit"
         className="w-full bg-[#195175] hover:bg-[#195175]/90"
-        disabled={isLoading}
+        disabled={isLoading || !isMetaMaskConnected}
       >
         <UserPlus className="mr-2 h-4 w-4" />
-        {isLoading ? "Registering..." : "Register"}
+        {isLoading ? "Creating Account..." : "Create Account"}
       </Button>
     </form>
   );
