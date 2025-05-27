@@ -21,9 +21,13 @@ const ToastViewport = React.forwardRef<
 ));
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
+type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>;
+
+type ToastActionElement = React.ReactElement<typeof ToastAction>;
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>
+  ToastProps
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Root
     ref={ref}
@@ -101,4 +105,6 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  type ToastProps,
+  type ToastActionElement,
 };

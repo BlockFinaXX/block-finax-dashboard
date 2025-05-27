@@ -7,15 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { UserPlus, User, Mail, Lock, Building } from "lucide-react";
+import { register } from "@/utils/auth";
 
 interface RegisterFormProps {
   onSuccess?: () => void;
 }
 
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    companyName: "",
+  });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -24,37 +29,11 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     e.preventDefault();
     setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Registration failed");
-      }
-
+      await register(formData);
       toast({
         title: "Success",
-        description: "Account created successfully",
+        description: "Registration successful! Please login.",
       });
       onSuccess?.();
       router.refresh();
@@ -63,47 +42,103 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         title: "Error",
         description:
           error instanceof Error ? error.message : "Registration failed",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-sm font-medium">
+            Full Name
+          </Label>
+          <div className="relative">
+            <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              value={formData.name}
+              onChange={handleChange}
+              className="pl-10"
+              placeholder="Enter your full name"
+              required
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm font-medium">
+            Email
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="pl-10"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium">
+            Password
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="pl-10"
+              placeholder="Create a password"
+              required
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="companyName" className="text-sm font-medium">
+            Company Name
+          </Label>
+          <div className="relative">
+            <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Input
+              id="companyName"
+              name="companyName"
+              type="text"
+              value={formData.companyName}
+              onChange={handleChange}
+              className="pl-10"
+              placeholder="Enter your company name"
+              required
+            />
+          </div>
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-        />
-      </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Creating account..." : "Create Account"}
+      <Button
+        type="submit"
+        className="w-full bg-[#195175] hover:bg-[#195175]/90"
+        disabled={isLoading}
+      >
+        <UserPlus className="mr-2 h-4 w-4" />
+        {isLoading ? "Registering..." : "Register"}
       </Button>
     </form>
   );

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { AuthDialog } from "@/components/auth/AuthDialog";
+import { LogIn, UserPlus } from "lucide-react";
 
 export default function Header() {
   const { data: session } = useSession();

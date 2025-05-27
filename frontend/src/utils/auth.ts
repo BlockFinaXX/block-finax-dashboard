@@ -1,17 +1,18 @@
 import { ethers } from "ethers";
+import { signIn } from "next-auth/react";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 interface RegisterData {
+  name: string;
   email: string;
   password: string;
-  ownerAddress: string;
+  companyName: string;
 }
 
-interface LoginData {
+interface LoginCredentials {
   email: string;
   password: string;
-  ownerAddress: string;
 }
 
 interface AuthResponse {
@@ -37,63 +38,49 @@ export async function getOwnerAddress(): Promise<string> {
 }
 
 export async function register(data: RegisterData): Promise<AuthResponse> {
-  try {
-    const response = await fetch(`${BASE_URL}/api/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
 
-    const result = await response.json();
+  const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || "Registration failed");
-    }
-
-    // Store auth data
-    if (result.token && result.user) {
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
-    }
-
-    return result;
-  } catch (error: any) {
-    return {
-      error: error.message || "Registration failed",
-    };
+  if (!response.ok) {
+    throw new Error(responseData.message || "Registration failed");
   }
+
+  // Store auth data
+  if (responseData.token && responseData.user) {
+    localStorage.setItem("token", responseData.token);
+    localStorage.setItem("user", JSON.stringify(responseData.user));
+  }
+
+  return responseData;
 }
 
-export async function login(data: LoginData): Promise<AuthResponse> {
-  try {
-    const response = await fetch(`${BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+export async function login(
+  credentials: LoginCredentials
+): Promise<AuthResponse> {
+  const result = await signIn("credentials", {
+    email: credentials.email,
+    password: credentials.password,
+    redirect: false,
+  });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "Login failed");
-    }
-
-    // Store auth data
-    if (result.token && result.user) {
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
-    }
-
-    return result;
-  } catch (error: any) {
-    return {
-      error: error.message || "Login failed",
-    };
+  if (result?.error) {
+    throw new Error("Invalid email or password");
   }
+
+  // Store auth data
+  if (result.token && result.user) {
+    localStorage.setItem("token", result.token);
+    localStorage.setItem("user", JSON.stringify(result.user));
+  }
+
+  return result;
 }
 
 export function logout() {
