@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import {
@@ -10,7 +10,7 @@ import {
   FolderArchive,
   User,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useSession, signOut } from "next-auth/react";
 
 const links = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -22,11 +22,17 @@ const links = [
 const Sidebar = () => {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
-  const { user } = useAuth();
+  const { data: session } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/");
+  };
 
   return (
     <aside className="w-64 h-screen fixed top-0 left-0 bg-white border-r border-gray-200 flex flex-col">
@@ -62,14 +68,25 @@ const Sidebar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.email || "Demo User"}
+              {session?.user?.email || "Demo User"}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {user?.address
-                ? `${user.address.slice(0, 6)}...${user.address.slice(-4)}`
+              {session?.user?.address
+                ? `${session.user.address.slice(
+                    0,
+                    6
+                  )}...${session.user.address.slice(-4)}`
                 : "Connect Wallet"}
             </p>
           </div>
+          {session?.user && (
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </div>
     </aside>

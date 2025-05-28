@@ -22,9 +22,6 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {session ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                {session.user?.email}
-              </span>
               <Button
                 variant="outline"
                 onClick={() => signOut({ callbackUrl: "/" })}

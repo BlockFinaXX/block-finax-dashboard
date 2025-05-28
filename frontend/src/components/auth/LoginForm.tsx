@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { LogIn, Mail, Lock } from "lucide-react";
-import { login } from "@/utils/auth";
+import { signIn } from "next-auth/react";
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -26,13 +26,25 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
-      onSuccess?.();
-      router.refresh();
+
+      if (result?.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+        });
+        onSuccess?.();
+        router.refresh();
+      }
     } catch (error) {
       toast({
         title: "Error",
