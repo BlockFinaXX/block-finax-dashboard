@@ -95,36 +95,36 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium">
+          <Label htmlFor="email" className="text-sm font-medium text-white">
             Email
           </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-primary-600" />
             <Input
               id="email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
-              className="pl-10"
+              className="pl-10 focus:border-primary-500 focus:ring-primary-500 text-primary-900 placeholder:text-primary-400"
               placeholder="Enter your email"
               required
             />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium">
+          <Label htmlFor="password" className="text-sm font-medium text-white">
             Password
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-primary-600" />
             <Input
               id="password"
               name="password"
               type="password"
               value={formData.password}
               onChange={handleChange}
-              className="pl-10"
+              className="pl-10 focus:border-primary-500 focus:ring-primary-500 text-primary-900 placeholder:text-primary-400"
               placeholder="Create a password"
               required
             />
@@ -136,7 +136,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         <Button
           type="button"
           onClick={handleConnectMetaMask}
-          className="w-full bg-[#195175] hover:bg-[#195175]/90"
+          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium"
         >
           <Wallet className="mr-2 h-4 w-4" />
           Connect MetaMask
@@ -145,7 +145,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       <Button
         type="submit"
-        className="w-full bg-[#195175] hover:bg-[#195175]/90"
+        className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium"
         disabled={isLoading || !isMetaMaskConnected}
       >
         <UserPlus className="mr-2 h-4 w-4" />

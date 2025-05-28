@@ -16,17 +16,17 @@ export function RegisterDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="bg-[#195175] hover:bg-[#195175]/90">
+        <Button className="bg-primary-600 hover:bg-primary-700 text-white font-medium">
           <UserPlus className="mr-2 h-4 w-4" />
           Register
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
+          <DialogTitle className="text-2xl font-bold text-center text-primary-900">
             Create Account
           </DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogDescription className="text-center text-primary-700">
             Fill in your details to create your account
           </DialogDescription>
         </DialogHeader>
