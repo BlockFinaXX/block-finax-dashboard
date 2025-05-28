@@ -1,13 +1,12 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import Sidebar from "../components/layout/SideBar";
-import Header from "../components/layout/Header";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { WagmiProvider } from "@/components/providers/WagmiProvider";
 import { ToastProvider } from "@/components/ui/toast";
+import Sidebar from "@/components/layout/SideBar";
+import Header from "@/components/layout/Header";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,17 +15,29 @@ export const metadata: Metadata = {
   description: "Manage your crypto assets with ease",
 };
 
-const RootLayout = async ({ children }: { children: React.ReactNode }) => {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
           <WagmiProvider>
             <ToastProvider>
-              <Sidebar />
-              <div className="ml-64 flex flex-col w-full min-h-screen">
-                <Header />
-                <main className="mt-16 flex-1 bg-gray-50 p-6">{children}</main>
+              <div className="flex h-screen">
+                <Sidebar />
+                <div className="flex-1 flex flex-col">
+                  <Header />
+                  <div className="flex-1 bg-gray-50">
+                    <div className="h-full w-full pl-[280px] pt-[64px]">
+                      <div className="h-full w-full max-w-7xl mx-auto px-6 py-8">
+                        {children}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </ToastProvider>
           </WagmiProvider>
@@ -34,6 +45,4 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
       </body>
     </html>
   );
-};
-
-export default RootLayout;
+}
