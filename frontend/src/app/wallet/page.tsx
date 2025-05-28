@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { WalletDashboard } from "@/components/wallet/WalletDashboard";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function WalletPage() {
   const { data: session } = useSession();
@@ -25,5 +26,9 @@ export default function WalletPage() {
     );
   }
 
-  return <WalletDashboard />;
+  return (
+    <PageLayout>
+      <WalletDashboard />
+    </PageLayout>
+  );
 }

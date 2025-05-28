@@ -13,7 +13,7 @@ import {
 import { useSession, signOut } from "next-auth/react";
 
 const links = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Wallet", href: "/wallet", icon: Wallet },
   { name: "Contracts", href: "/contracts", icon: FileText },
   { name: "Documents", href: "/documents", icon: FolderArchive },
