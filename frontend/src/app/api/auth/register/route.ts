@@ -1,81 +1,118 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hash } from "bcryptjs";
-import { connectDB } from "../../../../lib/db";
+import { ethers } from "ethers";
+import SmartAccountFactoryArtifact from "@/contracts/artifacts/contracts/SmartAccountFactory.sol/SmartAccountFactory.json";
+import { getProvider } from "@/lib/web3";
+import User from "@/models/user";
+import { connectDB } from "@/lib/db";
+import { Model } from "mongoose";
+import bcrypt from "bcrypt";
 
-import User from "../../../../models/user";
-import { signJwt } from "../../../../utils/jwt";
+const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS as string;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, ownerAddress } = await req.json();
+    const body = await req.json();
+    console.log("Registration request body:", body);
 
+    const { email, password, ownerAddress } = body;
+
+    // Validate input
     if (!email || !password || !ownerAddress) {
+      console.log("Missing required fields:", {
+        hasEmail: !!email,
+        hasPassword: !!password,
+        hasAddress: !!ownerAddress,
+      });
       return NextResponse.json(
-        { error: "Email, password, and owner address are required" },
+        { error: "Email, password and owner address are required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists
+    await connectDB();
+    const UserModel = User as Model<any>;
+    const existingUser = await UserModel.findOne({
+      $or: [{ email }, { address: ownerAddress }],
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User with this email or address already exists" },
         { status: 400 }
       );
     }
 
     // Create wallet first
-    const walletResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/wallet/create`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ownerAddress }),
-      }
+    console.log("Creating wallet for new user...");
+    const provider = getProvider();
+    const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+    const factory = new ethers.Contract(
+      FACTORY_ADDRESS,
+      SmartAccountFactoryArtifact.abi,
+      signer
     );
 
-    if (!walletResponse.ok) {
-      const error = await walletResponse.json();
+    // Create smart account
+    const salt = Date.now();
+    const tx = await factory.createWallet(ownerAddress, salt, {
+      gasLimit: 5000000,
+      type: 2,
+    });
+    console.log("Wallet creation transaction sent:", tx.hash);
+
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
+    console.log("Wallet creation confirmed");
+
+    // Get the created account address from the event
+    const event = receipt.logs.find(
+      (log: any) =>
+        log.topics[0] ===
+        factory.interface.getEvent("WalletDeployed")?.topicHash
+    );
+
+    if (!event) {
       return NextResponse.json(
-        { error: error.message || "Failed to create wallet" },
-        { status: walletResponse.status }
+        { error: "Failed to create wallet" },
+        { status: 500 }
       );
     }
 
-    const { walletAddress } = await walletResponse.json();
-
-    // Connect to database
-    await connectDB();
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
-    }
-
-    // Hash password
-    const passwordHash = await hash(password, 12);
-
-    // Create new user
-    const user = await User.create({
-      email,
-      passwordHash,
-      walletAddress,
-      address: ownerAddress,
+    const decodedLog = factory.interface.parseLog({
+      topics: event.topics,
+      data: event.data,
     });
 
-    // Generate JWT token
-    const token = signJwt({ userId: user._id });
+    const walletAddress = decodedLog?.args[0];
+    console.log("Wallet created successfully:", walletAddress);
+
+    // Hash password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create user with wallet address
+    const user = await UserModel.create({
+      email,
+      passwordHash,
+      address: ownerAddress,
+      walletAddress,
+    });
 
     return NextResponse.json({
-      success: true,
-      token,
+      message: "User registered successfully",
       user: {
-        id: user._id,
         email: user.email,
-        walletAddress: user.walletAddress,
         address: user.address,
+        walletAddress: user.walletAddress,
       },
     });
   } catch (error) {
     console.error("Registration error:", error);
-    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to register user" },
+      { status: 500 }
+    );
   }
 }

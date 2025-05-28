@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ethers } from "ethers";
 import SmartAccountFactoryArtifact from "@/contracts/artifacts/contracts/SmartAccountFactory.sol/SmartAccountFactory.json";
 import { getProvider, getBundler } from "@/lib/web3";
+import User from "@/models/user";
+import { connectDB } from "@/lib/db";
+import { Model } from "mongoose";
 
 const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS as string;
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
@@ -146,7 +149,46 @@ export async function POST(req: NextRequest) {
     const accountAddress = decodedLog?.args[0];
     console.log("Wallet created successfully:", accountAddress);
 
-    return NextResponse.json({ address: accountAddress });
+    // Update user's wallet address in database
+    try {
+      await connectDB();
+      console.log("Updating user record for address:", ownerAddress);
+
+      // First check if user exists
+      const UserModel = User as Model<any>;
+      let user = await UserModel.findOne({ address: ownerAddress });
+
+      if (!user) {
+        console.error("No user found with address:", ownerAddress);
+        return NextResponse.json(
+          { error: "User must register before creating a wallet" },
+          { status: 400 }
+        );
+      }
+
+      // Update existing user's wallet address
+      user = await UserModel.findOneAndUpdate(
+        { address: ownerAddress },
+        { $set: { walletAddress: accountAddress } },
+        { new: true }
+      );
+
+      console.log("User record updated successfully:", user);
+      return NextResponse.json({
+        address: accountAddress,
+        user: {
+          email: user.email,
+          address: user.address,
+          walletAddress: user.walletAddress,
+        },
+      });
+    } catch (dbError) {
+      console.error("Database update error:", dbError);
+      return NextResponse.json(
+        { error: "Failed to update user record", details: dbError.message },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Wallet creation error:", error);
     return NextResponse.json(
