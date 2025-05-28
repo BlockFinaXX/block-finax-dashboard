@@ -25,9 +25,9 @@ import {
   ArrowDownLeft,
   Wallet,
   ChevronRight,
-  QrCode,
 } from "lucide-react";
 import { formatEther } from "viem";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Select,
   SelectContent,
@@ -49,35 +49,28 @@ const SAMPLE_TOKENS: Token[] = [
     symbol: "ETH",
     name: "Ethereum",
     balance: "0.00",
-    icon: "🟣",
+    icon: "/tokens/eth.svg",
     address: "0x...",
   },
   {
     symbol: "USDC",
     name: "USD Coin",
     balance: "0.00",
-    icon: "💵",
+    icon: "/tokens/usdc.svg",
     address: "0x...",
   },
   {
     symbol: "USDT",
     name: "Tether",
     balance: "0.00",
-    icon: "💲",
+    icon: "/tokens/usdt.svg",
     address: "0x...",
   },
   {
-    symbol: "DAI",
-    name: "Dai Stablecoin",
+    symbol: "BASE",
+    name: "Base",
     balance: "0.00",
-    icon: "💱",
-    address: "0x...",
-  },
-  {
-    symbol: "WBTC",
-    name: "Wrapped Bitcoin",
-    balance: "0.00",
-    icon: "₿",
+    icon: "/tokens/base.svg",
     address: "0x...",
   },
 ];
@@ -197,14 +190,22 @@ export function WalletDashboard() {
                   onClick={() => setSelectedToken(token)}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="text-xl">{token.icon}</div>
+                    <div className="w-8 h-8">
+                      <img
+                        src={token.icon}
+                        alt={token.symbol}
+                        className="w-full h-full"
+                      />
+                    </div>
                     <div>
-                      <p className="font-medium">{token.symbol}</p>
+                      <p className="font-medium text-gray-500">
+                        {token.symbol}
+                      </p>
                       <p className="text-sm text-gray-500">{token.name}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{token.balance}</p>
+                    <p className="font-medium text-gray-500">{token.balance}</p>
                     <p className="text-sm text-gray-500">≈ $0.00</p>
                   </div>
                 </div>
@@ -244,7 +245,7 @@ export function WalletDashboard() {
               <TabsContent value="send">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Select Token</Label>
+                    <Label className="text-gray-900">Select Token</Label>
                     <Select
                       value={selectedToken.symbol}
                       onValueChange={(value) =>
@@ -254,10 +255,14 @@ export function WalletDashboard() {
                         )
                       }
                     >
-                      <SelectTrigger className="h-12 rounded-xl">
-                        <SelectValue>
+                      <SelectTrigger className="h-12 rounded-xl bg-white">
+                        <SelectValue className="bg-white">
                           <div className="flex items-center space-x-2">
-                            <span>{selectedToken.icon}</span>
+                            <img
+                              src={selectedToken.icon}
+                              alt={selectedToken.symbol}
+                              className="w-6 h-6"
+                            />
                             <span>{selectedToken.symbol}</span>
                           </div>
                         </SelectValue>
@@ -266,7 +271,11 @@ export function WalletDashboard() {
                         {SAMPLE_TOKENS.map((token) => (
                           <SelectItem key={token.symbol} value={token.symbol}>
                             <div className="flex items-center space-x-2">
-                              <span>{token.icon}</span>
+                              <img
+                                src={token.icon}
+                                alt={token.symbol}
+                                className="w-6 h-6"
+                              />
                               <span>{token.symbol}</span>
                             </div>
                           </SelectItem>
@@ -275,7 +284,9 @@ export function WalletDashboard() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Amount</Label>
+                    <Label htmlFor="amount" className="text-gray-900">
+                      Amount
+                    </Label>
                     <div className="relative">
                       <Input
                         id="amount"
@@ -291,7 +302,9 @@ export function WalletDashboard() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="recipient">Recipient Address</Label>
+                    <Label htmlFor="recipient" className="text-gray-900">
+                      Recipient Address
+                    </Label>
                     <Input
                       id="recipient"
                       placeholder="0x..."
@@ -333,10 +346,13 @@ export function WalletDashboard() {
                   </div>
                   <div className="flex justify-center">
                     <div className="w-64 h-64 bg-white rounded-xl flex items-center justify-center border-2 border-dashed border-gray-200">
-                      <div className="text-center">
-                        <QrCode className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                        <p className="text-sm text-gray-600">QR Code</p>
-                      </div>
+                      <QRCodeSVG
+                        value={smartAccount?.accountAddress as string}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                        className="p-2"
+                      />
                     </div>
                   </div>
                 </div>
@@ -351,7 +367,9 @@ export function WalletDashboard() {
         <Card className="border-none shadow-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-gray-600">Transaction History</CardTitle>
-            <CardDescription>View your past transactions</CardDescription>
+            <CardDescription className="text-gray-600">
+              View your past transactions
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
