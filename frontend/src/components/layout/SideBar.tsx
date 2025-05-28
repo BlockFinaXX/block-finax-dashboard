@@ -10,6 +10,7 @@ import {
   FolderArchive,
   User,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const links = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -21,6 +22,7 @@ const links = [
 const Sidebar = () => {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setHydrated(true);
@@ -60,9 +62,13 @@ const Sidebar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              User Name
+              {user?.email || "Demo User"}
             </p>
-            <p className="text-xs text-gray-500 truncate">user@example.com</p>
+            <p className="text-xs text-gray-500 truncate">
+              {user?.address
+                ? `${user.address.slice(0, 6)}...${user.address.slice(-4)}`
+                : "Connect Wallet"}
+            </p>
           </div>
         </div>
       </div>
