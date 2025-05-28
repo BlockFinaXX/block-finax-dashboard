@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "mkdir -p src/contracts/artifacts/contracts/SmartAccountFactory.sol && cp ../contracts/artifacts/contracts/SmartAccountFactory.sol/SmartAccountFactory.json src/contracts/artifacts/contracts/SmartAccountFactory.sol/ && next build",
     "start": "next start",
     "lint": "next lint"
   },

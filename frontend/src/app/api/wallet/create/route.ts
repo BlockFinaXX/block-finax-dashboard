@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ethers } from "ethers";
-import SmartAccountFactoryArtifact from "../../../../../artifacts/contracts/contracts/SmartAccountFactory.sol/SmartAccountFactory.json";
-import { getProvider, getBundler } from "../../../../lib/web3";
+import SmartAccountFactoryArtifact from "@/contracts/artifacts/contracts/SmartAccountFactory.sol/SmartAccountFactory.json";
+import { getProvider, getBundler } from "@/lib/web3";
 
 const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS as string;
-const PAYMASTER_ADDRESS = process.env.PAYMASTER_ADDRESS as string;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 
-if (!FACTORY_ADDRESS || !PAYMASTER_ADDRESS) {
-  throw new Error("Missing required environment variables");
-}
+// Define the contract type
+type SmartAccountFactory = ethers.Contract & {
+  createWallet: (
+    owner: string,
+    salt: number,
+    overrides?: any
+  ) => Promise<ethers.ContractTransactionResponse>;
+  getAddress: (owner: string, salt: number) => Promise<string>;
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,74 +27,133 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const provider = getProvider();
-    const bundler = getBundler();
+    if (!FACTORY_ADDRESS) {
+      console.error("FACTORY_ADDRESS is not set in environment variables");
+      return NextResponse.json(
+        { error: "Factory address not configured" },
+        { status: 500 }
+      );
+    }
 
-    // Create factory contract instance
+    if (!PRIVATE_KEY) {
+      console.error("PRIVATE_KEY is not set in environment variables");
+      return NextResponse.json(
+        { error: "Private key not configured" },
+        { status: 500 }
+      );
+    }
+
+    console.log("Creating wallet with:", {
+      ownerAddress,
+      factoryAddress: FACTORY_ADDRESS,
+    });
+
+    const provider = getProvider();
+    const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+
+    console.log("Transaction signer address:", await signer.getAddress());
+
     const factory = new ethers.Contract(
       FACTORY_ADDRESS,
       SmartAccountFactoryArtifact.abi,
-      provider
-    ) as ethers.Contract & {
-      getAddress: (owner: string, salt: number) => Promise<string>;
-    };
+      signer
+    );
 
-    // Generate a salt for deterministic address
-    const salt = Date.now();
-
-    try {
-      // Get the predicted wallet address using the factory's getAddress function
-      const walletAddress = await factory.getAddress(ownerAddress, salt);
-
-      // Create the wallet creation transaction
-      const tx = {
-        target: FACTORY_ADDRESS,
-        data: factory.interface.encodeFunctionData("createWallet", [
-          ownerAddress,
-          salt,
-        ]),
-      };
-
-      // Create and send the user operation
-      const userOp = await bundler.createUnsignedUserOp(tx);
-
-      // Add paymaster data to the user operation
-      userOp.paymasterAndData = PAYMASTER_ADDRESS;
-
-      const signedUserOp = await bundler.signUserOp(userOp);
-
-      // Send the user operation through the bundler
-      const userOpHash = await bundler.sendUserOperation(signedUserOp);
-
-      // Wait for the transaction to be mined
-      const receipt = await bundler.waitForUserOperation(userOpHash);
-
-      return NextResponse.json({
-        success: true,
-        walletAddress,
-        transactionHash: receipt.hash,
-      });
-    } catch (error: any) {
-      console.error("Error in user operation:", error);
-
-      // Provide more detailed error messages
-      let errorMessage = "Failed to create wallet";
-      if (error.message) {
-        if (error.message.includes("insufficient funds")) {
-          errorMessage = "Paymaster has insufficient funds for gas payment";
-        } else if (error.message.includes("gas required exceeds allowance")) {
-          errorMessage = "Gas limit exceeded for wallet creation";
-        } else if (error.message.includes("already deployed")) {
-          errorMessage = "Wallet already exists for this address";
-        }
-      }
-
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    // Verify contract is deployed
+    const code = await provider.getCode(FACTORY_ADDRESS);
+    console.log("Contract code length:", code.length);
+    if (code.length <= 2) {
+      return NextResponse.json(
+        { error: "Factory contract not deployed at specified address" },
+        { status: 500 }
+      );
     }
+
+    // Test reading from contract
+    try {
+      const entryPoint = await factory.entryPoint();
+      console.log("Entry point address:", entryPoint);
+    } catch (error) {
+      console.error("Error reading from contract:", error);
+      return NextResponse.json(
+        { error: "Failed to read from factory contract" },
+        { status: 500 }
+      );
+    }
+
+    // Verify EntryPoint contract
+    const entryPointAddress = "0xD333403Fd54d3be299bD7b39Fdf394bb7B7B065e";
+    const entryPointCode = await provider.getCode(entryPointAddress);
+    console.log("EntryPoint code length:", entryPointCode.length);
+    if (entryPointCode.length <= 2) {
+      return NextResponse.json(
+        { error: "EntryPoint contract not deployed at specified address" },
+        { status: 500 }
+      );
+    }
+
+    // Create smart account with explicit gas limit and data
+    console.log("Sending createWallet transaction...");
+    const salt = Date.now(); // Use timestamp as salt like in tests
+
+    // Get predicted address first
+    const predictedAddress = await factory.getAddress(ownerAddress, salt);
+    console.log("Predicted wallet address:", predictedAddress);
+
+    // Prepare transaction
+    const createWalletTx = await factory.createWallet.populateTransaction(
+      ownerAddress,
+      salt,
+      {
+        gasLimit: 5000000,
+        type: 2,
+      }
+    );
+    console.log("Transaction data:", createWalletTx);
+
+    // Call the contract method directly
+    const tx = await factory.createWallet(ownerAddress, salt, {
+      gasLimit: 5000000,
+      type: 2,
+    });
+    console.log("Transaction sent:", tx.hash);
+
+    console.log("Waiting for transaction confirmation...");
+    const receipt = await tx.wait();
+    console.log("Transaction confirmed:", receipt.hash);
+
+    // Get the created account address from the event
+    const event = receipt.logs.find(
+      (log: any) =>
+        log.topics[0] ===
+        factory.interface.getEvent("WalletDeployed")?.topicHash
+    );
+
+    if (!event) {
+      console.error("WalletDeployed event not found in logs:", receipt.logs);
+      return NextResponse.json(
+        { error: "Failed to find wallet creation event" },
+        { status: 500 }
+      );
+    }
+
+    // Parse the event data
+    const decodedLog = factory.interface.parseLog({
+      topics: event.topics,
+      data: event.data,
+    });
+
+    const accountAddress = decodedLog?.args[0];
+    console.log("Wallet created successfully:", accountAddress);
+
+    return NextResponse.json({ address: accountAddress });
   } catch (error) {
-    console.error("Error creating wallet:", error);
+    console.error("Wallet creation error:", error);
     return NextResponse.json(
-      { error: "Failed to create wallet" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create wallet",
+      },
       { status: 500 }
     );
   }

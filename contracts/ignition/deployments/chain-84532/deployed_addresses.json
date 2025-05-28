@@ -1,3 +1,4 @@
 {
-  "SmartAccountModule#SmartAccountFactory": "0xA4cDb081359359816827979C4300135820129D4F"
+  "SmartAccountModule#SmartAccountFactory": "0x5CfCb6236b331320e528FC1751357c0Ceac3F99a",
+  "PaymasterModule#Paymaster": "0xB1103cAeC9D005d204e558031e14E9584eAde653"
 }

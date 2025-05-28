@@ -5,15 +5,24 @@ const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 const PIMLICO_API_KEY = process.env.PIMLICO_API_KEY;
 const BASE_SEPOLIA_CHAIN_ID = "84532"; // Base Sepolia chain ID
 
+const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || "http://localhost:8545";
+
 if (!ALCHEMY_API_KEY || !PIMLICO_API_KEY) {
   throw new Error("Missing required environment variables");
 }
 
-export const getProvider = () => {
-  return new ethers.JsonRpcProvider(
-    `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`
-  );
-};
+export function getProvider() {
+  try {
+    if (!RPC_URL) {
+      throw new Error("RPC_URL is not configured");
+    }
+    console.log("Initializing provider with RPC URL:", RPC_URL);
+    return new ethers.JsonRpcProvider(RPC_URL);
+  } catch (error) {
+    console.error("Error initializing provider:", error);
+    throw error;
+  }
+}
 
 // Extend SimpleAccountAPI to include our custom methods
 interface ExtendedSimpleAccountAPI extends SimpleAccountAPI {
@@ -23,7 +32,20 @@ interface ExtendedSimpleAccountAPI extends SimpleAccountAPI {
   ) => Promise<ethers.TransactionReceipt>;
 }
 
-export const getBundler = (): ExtendedSimpleAccountAPI => {
+export function getBundler() {
+  try {
+    const bundlerUrl = process.env.NEXT_PUBLIC_BUNDLER_URL;
+    if (!bundlerUrl) {
+      throw new Error("BUNDLER_URL is not configured");
+    }
+    return new ethers.JsonRpcProvider(bundlerUrl);
+  } catch (error) {
+    console.error("Error initializing bundler:", error);
+    throw error;
+  }
+}
+
+export const getBundlerInstance = (): ExtendedSimpleAccountAPI => {
   const BUNDLER_RPC = `https://api.pimlico.io/v1/${BASE_SEPOLIA_CHAIN_ID}/rpc?apikey=${PIMLICO_API_KEY}`;
   const ENTRY_POINT = process.env.ENTRY_POINT_ADDRESS;
   const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS;

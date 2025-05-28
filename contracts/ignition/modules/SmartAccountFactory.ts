@@ -3,7 +3,7 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 const SmartAccountFactoryModule = buildModule("SmartAccountModule", (m) => {
   const entryPointAddress = m.getParameter(
     "entryPoint",
-    "0x8fF54D864E85Ac1Ef4e077F71D4A19aaE8Fb3Bf4"
+    "0xD333403Fd54d3be299bD7b39Fdf394bb7B7B065e"
   );
 
   // Deploy SmartAccountFactory with entryPoint param
