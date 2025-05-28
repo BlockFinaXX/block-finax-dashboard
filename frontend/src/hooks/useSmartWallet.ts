@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Network, Alchemy } from "alchemy-sdk";
 import { useSession } from "next-auth/react";
-import { parseEther } from "viem";
+import { parseEther, formatEther } from "viem";
 
 const ENTRY_POINT = process.env.ENTRY_POINT_ADDRESS!;
 const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS!;
@@ -56,8 +56,14 @@ export function useSmartWallet() {
         },
         provider: {
           getBalance: async (address) => {
-            const balance = await alchemy.core.getBalance(address);
-            return BigInt(balance.toString());
+            try {
+              const balance = await alchemy.core.getBalance(address);
+              console.log("Raw balance:", balance.toString());
+              return BigInt(balance.toString());
+            } catch (error) {
+              console.error("Error fetching balance:", error);
+              return BigInt(0);
+            }
           },
         },
       };
@@ -68,7 +74,8 @@ export function useSmartWallet() {
       const balance = await smartAccountClient.provider.getBalance(
         walletAddress
       );
-      setBalance(balance.toString());
+      console.log("Initial balance:", balance.toString());
+      setBalance(formatEther(balance));
     } catch (error) {
       console.error("Failed to initialize smart wallet:", error);
     } finally {
@@ -96,7 +103,7 @@ export function useSmartWallet() {
       const newBalance = await smartAccount.provider.getBalance(
         smartAccount.accountAddress
       );
-      setBalance(newBalance.toString());
+      setBalance(formatEther(newBalance));
 
       return receipt;
     } catch (error) {
@@ -112,8 +119,9 @@ export function useSmartWallet() {
       const balance = await smartAccount.provider.getBalance(
         smartAccount.accountAddress
       );
-      setBalance(balance.toString());
-      return balance.toString();
+      const formattedBalance = formatEther(balance);
+      setBalance(formattedBalance);
+      return formattedBalance;
     } catch (error) {
       console.error("Failed to get balance:", error);
       return "0";

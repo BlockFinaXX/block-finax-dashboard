@@ -156,9 +156,7 @@ export function WalletDashboard() {
                   <h3 className="text-sm font-medium text-white/80">
                     Total Balance
                   </h3>
-                  <p className="text-3xl font-bold text-white">
-                    {formatEther(BigInt(balance))} ETH
-                  </p>
+                  <p className="text-3xl font-bold text-white">{balance} ETH</p>
                 </div>
               </div>
               <Button
