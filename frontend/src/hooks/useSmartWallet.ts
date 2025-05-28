@@ -1,68 +1,130 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlchemyProvider } from "@alchemy/aa-alchemy";
-import { SmartAccountClient } from "@alchemy/aa-core";
+import { Network, Alchemy } from "alchemy-sdk";
 import { useSession } from "next-auth/react";
+import { parseEther } from "viem";
 
-const ENTRY_POINT = process.env.NEXT_PUBLIC_ENTRY_POINT!;
-const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS!;
-const PAYMASTER_ADDRESS = process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS!;
-const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY!;
+const ENTRY_POINT = process.env.ENTRY_POINT_ADDRESS!;
+const FACTORY_ADDRESS = process.env.FACTORY_ADDRESS!;
+const PAYMASTER_ADDRESS = process.env.PAYMASTER_ADDRESS!;
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY!;
+
+interface SmartAccountWithAddress {
+  accountAddress: string;
+  sendTransaction: (params: { to: string; value: bigint }) => Promise<any>;
+  provider: {
+    getBalance: (address: string) => Promise<bigint>;
+  };
+}
 
 export function useSmartWallet() {
   const { data: session } = useSession();
-  const [smartAccount, setSmartAccount] = useState<SmartAccountClient | null>(
-    null
-  );
+  const [smartAccount, setSmartAccount] =
+    useState<SmartAccountWithAddress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState<string>("0");
 
   const initializeSmartWallet = useCallback(async () => {
     if (!session?.user?.email) return;
 
     try {
-      const provider = new AlchemyProvider({
-        apiKey: ALCHEMY_API_KEY,
-        chain: "base-sepolia",
-      });
+      // Get the smart account address from the session
+      const walletAddress = session.user.walletAddress;
 
-      // Get the smart account address from your backend
-      const response = await fetch("/api/wallet/address", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: session.user.email,
-        }),
-      });
-
-      const { address } = await response.json();
-
-      if (!address) {
+      if (!walletAddress) {
         throw new Error("No smart account address found");
       }
 
-      const smartAccountClient = new SmartAccountClient({
-        provider,
-        entryPointAddress: ENTRY_POINT,
-        factoryAddress: FACTORY_ADDRESS,
-        paymasterAddress: PAYMASTER_ADDRESS,
-        accountAddress: address,
+      // Initialize Alchemy SDK
+      const alchemy = new Alchemy({
+        apiKey: ALCHEMY_API_KEY,
+        network: Network.BASE_SEPOLIA,
       });
 
+      // Create a wrapper that matches our interface
+      const smartAccountClient: SmartAccountWithAddress = {
+        accountAddress: walletAddress,
+        sendTransaction: async (params) => {
+          // For now, we'll just return a mock transaction
+          // TODO: Implement actual transaction sending
+          return {
+            hash: "0x...",
+            wait: async () => ({
+              hash: "0x...",
+              status: 1,
+            }),
+          };
+        },
+        provider: {
+          getBalance: async (address) => {
+            const balance = await alchemy.core.getBalance(address);
+            return BigInt(balance.toString());
+          },
+        },
+      };
+
       setSmartAccount(smartAccountClient);
+
+      // Get initial balance
+      const balance = await smartAccountClient.provider.getBalance(
+        walletAddress
+      );
+      setBalance(balance.toString());
     } catch (error) {
       console.error("Failed to initialize smart wallet:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user?.email]);
+  }, [session?.user?.email, session?.user?.walletAddress]);
 
   useEffect(() => {
     initializeSmartWallet();
   }, [initializeSmartWallet]);
 
+  const sendTransaction = async (to: string, amount: string) => {
+    if (!smartAccount) throw new Error("Smart account not initialized");
+
+    try {
+      const tx = await smartAccount.sendTransaction({
+        to,
+        value: parseEther(amount),
+      });
+
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+
+      // Update balance after transaction
+      const newBalance = await smartAccount.provider.getBalance(
+        smartAccount.accountAddress
+      );
+      setBalance(newBalance.toString());
+
+      return receipt;
+    } catch (error) {
+      console.error("Failed to send transaction:", error);
+      throw error;
+    }
+  };
+
+  const getBalance = async () => {
+    if (!smartAccount) return "0";
+
+    try {
+      const balance = await smartAccount.provider.getBalance(
+        smartAccount.accountAddress
+      );
+      setBalance(balance.toString());
+      return balance.toString();
+    } catch (error) {
+      console.error("Failed to get balance:", error);
+      return "0";
+    }
+  };
+
   return {
     smartAccount,
     isLoading,
+    balance,
+    sendTransaction,
+    getBalance,
   };
 }

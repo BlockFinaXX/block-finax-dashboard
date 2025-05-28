@@ -85,7 +85,8 @@ interface Transaction {
 }
 
 export function WalletDashboard() {
-  const { smartAccount, isLoading } = useSmartWallet();
+  const { smartAccount, isLoading, balance, sendTransaction } =
+    useSmartWallet();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("send");
   const [sendAmount, setSendAmount] = useState("");
@@ -98,15 +99,24 @@ export function WalletDashboard() {
 
     setIsSending(true);
     try {
-      // Implement send transaction logic here
+      const tx = await sendTransaction(recipientAddress, sendAmount);
+
       toast({
         title: "Transaction Sent",
-        description: "Your transaction has been submitted successfully.",
+        description: `Transaction hash: ${tx.hash}`,
       });
+
+      // Reset form
+      setSendAmount("");
+      setRecipientAddress("");
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send transaction. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to send transaction. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSending(false);
@@ -146,7 +156,9 @@ export function WalletDashboard() {
                   <h3 className="text-sm font-medium text-white/80">
                     Total Balance
                   </h3>
-                  <p className="text-3xl font-bold text-white">$0.00</p>
+                  <p className="text-3xl font-bold text-white">
+                    {formatEther(BigInt(balance))} ETH
+                  </p>
                 </div>
               </div>
               <Button
@@ -161,7 +173,9 @@ export function WalletDashboard() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-white/80 truncate">Address</p>
                 <p className="text-sm text-white truncate">
-                  {smartAccount?.accountAddress as string}
+                  {typeof smartAccount?.accountAddress === "string"
+                    ? smartAccount.accountAddress
+                    : "Not connected"}
                 </p>
               </div>
               <Button
