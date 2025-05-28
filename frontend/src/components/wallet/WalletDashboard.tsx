@@ -325,7 +325,7 @@ export function WalletDashboard() {
               </TabsContent>
 
               <TabsContent value="receive">
-                <div className="space-y-6">
+                <div className="space-y-3">
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm font-medium text-gray-800 mb-2">
                       Your Address
@@ -348,10 +348,10 @@ export function WalletDashboard() {
                     <div className="w-64 h-64 bg-white rounded-xl flex items-center justify-center border-2 border-dashed border-gray-200">
                       <QRCodeSVG
                         value={smartAccount?.accountAddress as string}
-                        size={200}
+                        size={250}
                         level="H"
                         includeMargin={true}
-                        className="p-2"
+                        className="p-0"
                       />
                     </div>
                   </div>
